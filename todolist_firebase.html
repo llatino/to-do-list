@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📟 TO-DO LIST</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=VT323&display=swap');
+
+        :root {
+            --font-main: 'Fredoka', sans-serif;
+            --font-pixel: 'VT323', monospace;
+            --bg-window: #fef9c3;
+            --bg-form: #fef08a;
+            --theme-pink: #f472b6;
+            --theme-purple: #c084fc;
+            --theme-green: #22c55e;
+            --theme-orange: #ea580c;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: var(--font-main);
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            background-color: #dfdbe5;
+            background-image: linear-gradient(rgba(255, 255, 255, 0.6) 2px, transparent 2px),
+                              linear-gradient(90deg, rgba(255, 255, 255, 0.6) 2px, transparent 2px);
+            background-size: 35px 35px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .window {
+            background: var(--bg-window);
+            width: min(540px, 100%);
+            height: calc(100vh - 40px);
+            min-height: 500px;
+            border: 3px solid #000000;
+            border-radius: 20px;
+            box-shadow: 10px 10px 0px #000000;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+                align-items: flex-start;
+            }
+            .window {
+                width: 100%;
+                height: calc(100vh - 20px);
+                border-radius: 14px;
+                box-shadow: 5px 5px 0px #000000;
+            }
+        }
+
+        .title-bar {
+            background: var(--theme-pink);
+            padding: 12px 18px;
+            border-bottom: 3px solid #000000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+        }
+
+        .title-text {
+            font-family: var(--font-pixel);
+            font-size: 26px;
+            font-weight: bold;
+            color: #000000;
+            letter-spacing: 1px;
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .control-btn {
+            width: 14px;
+            height: 14px;
+            border: 2px solid #000000;
+            border-radius: 50%;
+        }
+        .btn-r { background: #ff5f56; }
+        .btn-y { background: #ffbd2e; }
+        .btn-g { background: #27c93f; }
+
+        .content {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            height: calc(100% - 57px);
+        }
+
+        @media (max-width: 400px) {
+            .content {
+                padding: 12px;
+            }
+            .quest-form {
+                padding: 10px;
+            }
+            .title-text {
+                font-size: 20px;
+            }
+            .remove-btn {
+                padding: 8px 12px;
+                font-size: 13px;
+            }
+            .checkbox-circle {
+                width: 32px;
+                height: 32px;
+                font-size: 16px;
+            }
+        }
+
+        .quest-form {
+            background: var(--bg-form);
+            border: 3px solid #000000;
+            border-radius: 18px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 4px 4px 0px #000000;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        input[type="text"] {
+            flex: 1.8;
+            min-width: 120px;
+            padding: 10px 15px;
+            border: 3px solid #000000;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            outline: none;
+            background: #ffffff;
+        }
+
+        select, input[type="number"] {
+            flex: 1;
+            min-width: 80px;
+            padding: 10px;
+            border: 3px solid #000000;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 700;
+            background: #ffffff;
+            outline: none;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .add-btn {
+            width: 100%;
+            background: var(--theme-purple);
+            color: #000000;
+            border: 3px solid #000000;
+            border-radius: 14px;
+            padding: 10px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0px 5px 0px #000000;
+            transition: transform 0.05s, box-shadow 0.05s;
+        }
+
+        .add-btn:active {
+            transform: translateY(5px);
+            box-shadow: 0px 0px 0px #000000;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 5px;
+            border-bottom: 3px solid #000000;
+            padding-left: 5px;
+            user-select: none;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+
+        .tabs::-webkit-scrollbar { display: none; }
+
+        .tab {
+            padding: 8px 16px;
+            background: #e2e8f0;
+            border: 3px solid #000000;
+            border-bottom: none;
+            border-radius: 10px 10px 0 0;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            position: relative;
+            top: 3px;
+            transition: background 0.2s;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .tab.active {
+            background: #ffffff;
+            top: 0px;
+            padding-bottom: 11px;
+            z-index: 2;
+        }
+
+        .quest-list-container {
+            flex: 1;
+            background: #ffffff;
+            border: 3px solid #000000;
+            border-top: none;
+            border-radius: 0 0 16px 16px;
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        .quest-card {
+            background: #ffffff;
+            border: 3px solid #000000;
+            border-radius: 16px;
+            padding: 14px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            box-shadow: 4px 4px 0px #000000;
+            transition: background 0.3s;
+            flex-wrap: wrap;
+        }
+
+        .quest-card.done {
+            background: #bbf7d0;
+        }
+
+        .card-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex: 1;
+        }
+
+        .checkbox-circle {
+            width: 28px;
+            height: 28px;
+            border: 3px solid #000000;
+            border-radius: 50%;
+            background: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            user-select: none;
+            transition: background 0.2s;
+        }
+
+        .quest-card.done .checkbox-circle {
+            background: var(--theme-green);
+            color: #ffffff;
+        }
+
+        .quest-details {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .quest-text {
+            font-size: 16px;
+            font-weight: 600;
+            color: #000000;
+        }
+
+        .quest-card.done .quest-text {
+            text-decoration: line-through;
+            color: #6b7280;
+        }
+
+        .badge {
+            display: inline-block;
+            background: #fef08a;
+            border: 2px solid #000000;
+            border-radius: 8px;
+            padding: 2px 8px;
+            font-size: 11px;
+            font-weight: 700;
+            width: fit-content;
+        }
+
+        .quest-card.done .badge {
+            background: #cbd5e1;
+        }
+
+        .remove-btn {
+            background: #ffedd5;
+            color: var(--theme-orange);
+            border: 2px solid var(--theme-orange);
+            border-radius: 10px;
+            padding: 5px 12px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .remove-btn:hover {
+            background: #fed7aa;
+        }
+
+        .deco-star {
+            position: absolute;
+            font-size: 24px;
+            color: #fbcfe8;
+            pointer-events: none;
+            user-select: none;
+            font-family: var(--font-pixel);
+        }
+
+        .quest-list-container::-webkit-scrollbar {
+            width: 10px;
+        }
+        .quest-list-container::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-left: 2px solid #000000;
+        }
+        .quest-list-container::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border: 2px solid #000000;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="window">
+        <div class="deco-star" style="top: 65px; right: 25px;">★</div>
+        <div class="deco-star" style="bottom: 20px; left: 15px; color: #fed7aa;">★</div>
+
+        <div class="title-bar">
+            <div class="title-text">💾 TO-DO LIST.EXE</div>
+            <div class="window-controls">
+                <div class="control-btn btn-r"></div>
+                <div class="control-btn btn-y"></div>
+                <div class="control-btn btn-g"></div>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="quest-form">
+                <div class="input-row">
+                    <input type="text" id="questInput" placeholder="New Quest..." autocomplete="off">
+                    
+                    <select id="cycleSelect" onchange="handleCycleChange()">
+                        <option value="weekly">weekly</option>
+                        <option value="daily">daily</option>
+                        <option value="monthly">monthly</option>
+                    </select>
+
+                    <div id="subValueContainer" style="display: flex; flex: 1;">
+                        <select id="subValueSelect"></select>
+                    </div>
+                </div>
+                <button class="add-btn" onclick="addQuest()">[ ＋ ADD NEW QUEST ]</button>
+            </div>
+
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('all')">📁 ALL</div>
+                <div class="tab" onclick="switchTab('weekly')">📅 WEEKLY</div>
+                <div class="tab" onclick="switchTab('daily')">🔄 DAILY</div>
+                <div class="tab" onclick="switchTab('monthly')">📆 MONTHLY</div>
+            </div>
+
+            <div class="quest-list-container" id="questList"></div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyANftMTXXg7LH8ovcYUJO5xS1HWLCkA6YA",
+            authDomain: "to-do-list-81256.firebaseapp.com",
+            projectId: "to-do-list-81256",
+            storageBucket: "to-do-list-81256.firebasestorage.app",
+            messagingSenderId: "602345907639",
+            appId: "1:602345907639:web:7fd2cc885ccffcbd14b432"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const docRef = doc(db, "todos", "shared");
+
+        let todos = [];
+        let currentTab = 'all';
+        const engDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+        // 🔄 Real-time sync — ฟัง Firestore ตลอดเวลา
+        onSnapshot(docRef, (snapshot) => {
+            if (snapshot.exists()) {
+                todos = snapshot.data().items || [];
+            } else {
+                todos = [];
+            }
+            checkAndResetCycles();
+            renderList();
+        });
+
+        // 💾 บันทึกขึ้น Firestore
+        async function saveData() {
+            await setDoc(docRef, { items: todos });
+        }
+
+        window.handleCycleChange = function() {
+            const cycle = document.getElementById('cycleSelect').value;
+            const container = document.getElementById('subValueContainer');
+            if (cycle === 'weekly') {
+                container.innerHTML = `<select id="subValueSelect">
+                    <option value="1">Monday</option>
+                    <option value="2">Tuesday</option>
+                    <option value="3">Wednesday</option>
+                    <option value="4">Thursday</option>
+                    <option value="5">Friday</option>
+                    <option value="6">Saturday</option>
+                    <option value="0">Sunday</option>
+                </select>`;
+            } else if (cycle === 'daily') {
+                container.innerHTML = `<input type="number" id="subValueInput" value="3" min="1" style="width:100px;"> <span style="align-self:center; margin-left:5px; font-weight:bold; font-size:12px;">Days</span>`;
+            } else if (cycle === 'monthly') {
+                container.innerHTML = `<span style="align-self:center; margin-right:5px; font-weight:bold; font-size:12px;">Day</span> <input type="number" id="subValueInput" value="1" min="1" max="31" style="width:80px;">`;
+            }
+        }
+
+        window.addQuest = async function() {
+            const input = document.getElementById('questInput');
+            const text = input.value.trim();
+            if (!text) { alert('Please enter a quest name before adding!'); return; }
+
+            const cycle = document.getElementById('cycleSelect').value;
+            let value = 1;
+            if (cycle === 'weekly') {
+                value = parseInt(document.getElementById('subValueSelect').value);
+            } else {
+                value = parseInt(document.getElementById('subValueInput').value) || 1;
+            }
+
+            todos.push({ id: Date.now(), text, cycle, value, done: false, lastDoneDate: null });
+            await saveData();
+            input.value = '';
+            switchTab(cycle);
+        }
+
+        window.toggleQuest = async function(id) {
+            const todayStr = new Date().toISOString().split('T')[0];
+            todos = todos.map(todo => {
+                if (todo.id === id) {
+                    todo.done = !todo.done;
+                    todo.lastDoneDate = todo.done ? todayStr : null;
+                }
+                return todo;
+            });
+            await saveData();
+        }
+
+        window.removeQuest = async function(id) {
+            todos = todos.filter(todo => todo.id !== id);
+            await saveData();
+        }
+
+        function checkAndResetCycles() {
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+            const todayWday = today.getDay();
+            let hasChanges = false;
+
+            todos = todos.map(todo => {
+                if (todo.cycle === 'custom') { todo.cycle = 'daily'; hasChanges = true; }
+                if (todo.done && todo.lastDoneDate && todo.lastDoneDate !== todayStr) {
+                    const diffDays = Math.floor(Math.abs(today - new Date(todo.lastDoneDate)) / 86400000);
+                    if (todo.cycle === 'weekly' && todayWday === todo.value) { todo.done = false; todo.lastDoneDate = null; hasChanges = true; }
+                    else if (todo.cycle === 'monthly' && today.getDate() === todo.value) { todo.done = false; todo.lastDoneDate = null; hasChanges = true; }
+                    else if (todo.cycle === 'daily' && diffDays >= todo.value) { todo.done = false; todo.lastDoneDate = null; hasChanges = true; }
+                }
+                return todo;
+            });
+
+            if (hasChanges) saveData();
+        }
+
+        window.switchTab = function(tabName) {
+            currentTab = tabName;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            const tabMap = { 'all': 0, 'weekly': 1, 'daily': 2, 'monthly': 3 };
+            document.querySelectorAll('.tab')[tabMap[tabName]].classList.add('active');
+            renderList();
+        }
+
+        function renderList() {
+            const listContainer = document.getElementById('questList');
+            listContainer.innerHTML = '';
+            const filteredTodos = todos.filter(todo => currentTab === 'all' || todo.cycle === currentTab);
+
+            filteredTodos.forEach(todo => {
+                const card = document.createElement('div');
+                card.className = `quest-card ${todo.done ? 'done' : ''}`;
+                let cycleText = '';
+                if (todo.cycle === 'weekly') cycleText = ` Every ${engDays[todo.value]}`;
+                else if (todo.cycle === 'monthly') cycleText = ` Every Day ${todo.value}`;
+                else cycleText = ` Every ${todo.value} Days`;
+
+                card.innerHTML = `
+                    <div class="card-left">
+                        <div class="checkbox-circle" onclick="toggleQuest(${todo.id})">${todo.done ? '✓' : ''}</div>
+                        <div class="quest-details">
+                            <div class="quest-text">${todo.text}</div>
+                            <div class="badge">↺ ${cycleText}</div>
+                        </div>
+                    </div>
+                    <button class="remove-btn" onclick="removeQuest(${todo.id})">Remove</button>
+                `;
+                listContainer.appendChild(card);
+            });
+        }
+
+        handleCycleChange();
+        renderList();
+    </script>
+</body>
+</html>
