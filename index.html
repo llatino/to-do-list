@@ -393,45 +393,47 @@
         </div>
     </div>
 
-    <script>
-        // 🎯 ตั้งค่าระบบเขียนไฟล์ลงไดเรกทอรี Documents อัตโนมัติเมื่อเปิดผ่าน Nativefier/Electron
-        let fs, path, targetDir, dataFilePath;
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyANftMTXXg7LH8ovcYUJO5xS1HWLCkA6YA",
+            authDomain: "to-do-list-81256.firebaseapp.com",
+            projectId: "to-do-list-81256",
+            storageBucket: "to-do-list-81256.firebasestorage.app",
+            messagingSenderId: "602345907639",
+            appId: "1:602345907639:web:7fd2cc885ccffcbd14b432"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const docRef = doc(db, "todos", "shared");
+
         let todos = [];
-
-        try {
-            // ดึงโมดูลฮาร์ดดิสก์ของคอมพิวเตอร์ผ่านตัวห่อแอป (NodeJS/Electron)
-            fs = require('fs');
-            path = require('path');
-            
-            // บังคับเส้นทางให้วิ่งไปที่ Documents\my-todo-app
-            targetDir = "C:\\Users\\asus\\Documents\\my-todo-app";
-            dataFilePath = path.join(targetDir, "cycle_todos.json");
-
-            // ตรวจสอบและสร้างโฟลเดอร์ให้อัตโนมัติถ้าหากยังไม่มีในคอมพิวเตอร์
-            if (!fs.existsSync(targetDir)) {
-                fs.mkdirSync(targetDir, { recursive: true });
-            }
-
-            // โหลดฐานข้อมูลจากไฟล์ JSON ใน Documents
-            if (fs.existsSync(dataFilePath)) {
-                const fileData = fs.readFileSync(dataFilePath, 'utf8');
-                todos = JSON.parse(fileData) || [];
-            } else {
-                todos = [];
-            }
-        } catch (e) {
-            // ระบบแผนสำรอง (ย้อนกลับไปใช้ localStorage เผื่อเปิดทดสอบบนเบราว์เซอร์ปกติ)
-            console.log("Running in standard browser mode, switching to localStorage");
-            todos = JSON.parse(localStorage.getItem('cycle_todos')) || [];
-        }
-
         let currentTab = 'all';
         const engDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-        function handleCycleChange() {
+        // 🔄 Real-time sync — ฟัง Firestore ตลอดเวลา
+        onSnapshot(docRef, (snapshot) => {
+            if (snapshot.exists()) {
+                todos = snapshot.data().items || [];
+            } else {
+                todos = [];
+            }
+            checkAndResetCycles();
+            renderList();
+        });
+
+        // 💾 บันทึกขึ้น Firestore
+        async function saveData() {
+            await setDoc(docRef, { items: todos });
+        }
+
+        window.handleCycleChange = function() {
             const cycle = document.getElementById('cycleSelect').value;
             const container = document.getElementById('subValueContainer');
-            
             if (cycle === 'weekly') {
                 container.innerHTML = `<select id="subValueSelect">
                     <option value="1">Monday</option>
@@ -449,39 +451,26 @@
             }
         }
 
-        function addQuest() {
+        window.addQuest = async function() {
             const input = document.getElementById('questInput');
             const text = input.value.trim();
-            if (!text || text === 'New Quest...') {
-                alert('Please enter a quest name before adding!');
-                return;
-            }
+            if (!text) { alert('Please enter a quest name before adding!'); return; }
 
             const cycle = document.getElementById('cycleSelect').value;
             let value = 1;
-
             if (cycle === 'weekly') {
                 value = parseInt(document.getElementById('subValueSelect').value);
             } else {
                 value = parseInt(document.getElementById('subValueInput').value) || 1;
             }
 
-            const newQuest = {
-                id: Date.now(),
-                text: text,
-                cycle: cycle,
-                value: value,
-                done: false,
-                lastDoneDate: null
-            };
-
-            todos.push(newQuest);
-            saveData();
+            todos.push({ id: Date.now(), text, cycle, value, done: false, lastDoneDate: null });
+            await saveData();
             input.value = '';
             switchTab(cycle);
         }
 
-        function toggleQuest(id) {
+        window.toggleQuest = async function(id) {
             const todayStr = new Date().toISOString().split('T')[0];
             todos = todos.map(todo => {
                 if (todo.id === id) {
@@ -490,45 +479,27 @@
                 }
                 return todo;
             });
-            saveData();
-            renderList();
+            await saveData();
         }
 
-        function removeQuest(id) {
+        window.removeQuest = async function(id) {
             todos = todos.filter(todo => todo.id !== id);
-            saveData();
-            renderList();
+            await saveData();
         }
 
         function checkAndResetCycles() {
             const today = new Date();
             const todayStr = today.toISOString().split('T')[0];
-            let todayWday = today.getDay(); 
+            const todayWday = today.getDay();
             let hasChanges = false;
 
             todos = todos.map(todo => {
                 if (todo.cycle === 'custom') { todo.cycle = 'daily'; hasChanges = true; }
-
-                if (todo.done && todo.lastDoneDate) {
-                    if (todo.lastDoneDate === todayStr) return todo;
-                    
-                    const lastDone = new Date(todo.lastDoneDate);
-                    const diffTime = Math.abs(today - lastDone);
-                    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-                    if (todo.cycle === 'weekly' && todayWday === todo.value) {
-                        todo.done = false;
-                        todo.lastDoneDate = null;
-                        hasChanges = true;
-                    } else if (todo.cycle === 'monthly' && today.getDate() === todo.value) {
-                        todo.done = false;
-                        todo.lastDoneDate = null;
-                        hasChanges = true;
-                    } else if (todo.cycle === 'daily' && diffDays >= todo.value) {
-                        todo.done = false;
-                        todo.lastDoneDate = null;
-                        hasChanges = true;
-                    }
+                if (todo.done && todo.lastDoneDate && todo.lastDoneDate !== todayStr) {
+                    const diffDays = Math.floor(Math.abs(today - new Date(todo.lastDoneDate)) / 86400000);
+                    if (todo.cycle === 'weekly' && todayWday === todo.value) { todo.done = false; todo.lastDoneDate = null; hasChanges = true; }
+                    else if (todo.cycle === 'monthly' && today.getDate() === todo.value) { todo.done = false; todo.lastDoneDate = null; hasChanges = true; }
+                    else if (todo.cycle === 'daily' && diffDays >= todo.value) { todo.done = false; todo.lastDoneDate = null; hasChanges = true; }
                 }
                 return todo;
             });
@@ -536,27 +507,22 @@
             if (hasChanges) saveData();
         }
 
-        function switchTab(tabName) {
+        window.switchTab = function(tabName) {
             currentTab = tabName;
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            
-            const tabElements = document.querySelectorAll('.tab');
             const tabMap = { 'all': 0, 'weekly': 1, 'daily': 2, 'monthly': 3 };
-            tabElements[tabMap[tabName]].classList.add('active');
-            
+            document.querySelectorAll('.tab')[tabMap[tabName]].classList.add('active');
             renderList();
         }
 
         function renderList() {
             const listContainer = document.getElementById('questList');
             listContainer.innerHTML = '';
-
             const filteredTodos = todos.filter(todo => currentTab === 'all' || todo.cycle === currentTab);
 
             filteredTodos.forEach(todo => {
                 const card = document.createElement('div');
                 card.className = `quest-card ${todo.done ? 'done' : ''}`;
-
                 let cycleText = '';
                 if (todo.cycle === 'weekly') cycleText = ` Every ${engDays[todo.value]}`;
                 else if (todo.cycle === 'monthly') cycleText = ` Every Day ${todo.value}`;
@@ -576,19 +542,7 @@
             });
         }
 
-        // 💾 ฟังก์ชันบันทึกข้อมูลแบบแบ่งแยกสภาพแวดล้อม (เซฟลงคอมฯ ทันทีผ่านแอป)
-        function saveData() {
-            if (fs && dataFilePath) {
-                // เขียนข้อมูลทับไฟล์ลงไดเรกทอรี Documents โดยตรง
-                fs.writeFileSync(dataFilePath, JSON.stringify(todos, null, 4), 'utf8');
-            } else {
-                localStorage.setItem('cycle_todos', JSON.stringify(todos));
-            }
-            renderList();
-        }
-
         handleCycleChange();
-        checkAndResetCycles();
         renderList();
     </script>
 </body>
